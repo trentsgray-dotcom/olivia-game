@@ -979,17 +979,14 @@ canvas.addEventListener('touchend', () => {
 }, { passive: true });
 
 canvas.addEventListener('click', e => {
-  // Touch devices fire both touchstart and click; skip redundant click on touch.
-  if (e.sourceCapabilities && !e.sourceCapabilities.firesTouchEvents) {
-    initAudio();
-    const { x: tx, y: ty } = toCanvas(e.clientX, e.clientY);
-    if (Math.hypot(tx - 36, ty - 36) < 18) { muted = !muted; return; }
-    if (state === 'start') { startGame(); return; }
-    if (state === 'gameover') {
-      const by = newHighScore ? 430 : 440;
-      if (tx > W/2-100 && tx < W/2+100 && ty > by-25 && ty < by+25) startGame();
-      else if (tx > W/2-90 && tx < W/2+90 && ty > by+46 && ty < by+86) shareScore();
-    }
+  initAudio();
+  const { x: tx, y: ty } = toCanvas(e.clientX, e.clientY);
+  if (Math.hypot(tx - 36, ty - 36) < 18) { muted = !muted; return; }
+  if (state === 'start') { startGame(); return; }
+  if (state === 'gameover') {
+    const by = newHighScore ? 430 : 440;
+    if (tx > W/2-100 && tx < W/2+100 && ty > by-25 && ty < by+25) startGame();
+    else if (tx > W/2-90 && tx < W/2+90 && ty > by+46 && ty < by+86) shareScore();
   }
 });
 
