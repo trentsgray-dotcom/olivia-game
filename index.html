@@ -1075,7 +1075,7 @@ function drawLandscapeGuard() {
 function loop(ts) {
   const dt = last ? Math.min((ts - last) / 1000, 0.05) : 0;
   last = ts;
-  if (window.innerWidth > window.innerHeight) { drawLandscapeGuard(); requestAnimationFrame(loop); return; }
+  if (HAS_TOUCH && window.innerWidth > window.innerHeight) { drawLandscapeGuard(); requestAnimationFrame(loop); return; }
   if (state === 'start') { drawStartScreen(); }
   else if (state === 'playing') { update(dt); render(); }
   else if (shakeTimer > 0) {
