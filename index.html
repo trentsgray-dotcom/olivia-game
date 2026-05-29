@@ -112,32 +112,38 @@ function snd(fn) {
 function sndCoin() {
   snd(ac => {
     const now = ac.currentTime;
+    // 4 staggered coin clinks at slightly different pitches and timings
+    // — simulates a handful of coins jingling against each other
+    [
+      { t: 0.000, freq: 2800, amp: 0.30, dur: 0.10 },
+      { t: 0.030, freq: 3500, amp: 0.26, dur: 0.09 },
+      { t: 0.055, freq: 2200, amp: 0.22, dur: 0.11 },
+      { t: 0.085, freq: 3100, amp: 0.18, dur: 0.08 },
+    ].forEach(({ t, freq, amp, dur }) => {
+      const hit = now + t;
 
-    // "Cha" — sharp bandpass noise burst (the percussive strike)
-    const nLen = Math.floor(ac.sampleRate * 0.065);
-    const nBuf = ac.createBuffer(1, nLen, ac.sampleRate);
-    const nd = nBuf.getChannelData(0);
-    for (let i = 0; i < nLen; i++) nd[i] = (Math.random() * 2 - 1) * (1 - i / nLen);
-    const noise = ac.createBufferSource(); noise.buffer = nBuf;
-    const bp = ac.createBiquadFilter(); bp.type = 'bandpass';
-    bp.frequency.value = 4200; bp.Q.value = 1.8;
-    const ng = ac.createGain();
-    ng.gain.setValueAtTime(0.55, now);
-    ng.gain.exponentialRampToValueAtTime(0.001, now + 0.065);
-    noise.connect(bp); bp.connect(ng); ng.connect(ac.destination);
-    noise.start(now); noise.stop(now + 0.07);
+      // Noise click (the physical impact of coins touching)
+      const nLen = Math.floor(ac.sampleRate * 0.025);
+      const buf = ac.createBuffer(1, nLen, ac.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < nLen; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / nLen);
+      const src = ac.createBufferSource(); src.buffer = buf;
+      const bp = ac.createBiquadFilter(); bp.type = 'bandpass';
+      bp.frequency.value = freq; bp.Q.value = 2.5;
+      const ng = ac.createGain();
+      ng.gain.setValueAtTime(amp * 1.1, hit);
+      ng.gain.exponentialRampToValueAtTime(0.001, hit + 0.025);
+      src.connect(bp); bp.connect(ng); ng.connect(ac.destination);
+      src.start(hit); src.stop(hit + 0.03);
 
-    // "Ching" — two metallic partials with a slow frequency sag (coin ring)
-    [[2100, 0.32, 0.52], [3400, 0.14, 0.32]].forEach(([freq, amp, dur]) => {
+      // Short metallic ring after each click
       const osc = ac.createOscillator(), g = ac.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, now);
-      osc.frequency.exponentialRampToValueAtTime(freq * 0.91, now + dur); // pitch sag = realism
-      g.gain.setValueAtTime(0, now);
-      g.gain.linearRampToValueAtTime(amp, now + 0.022);
-      g.gain.exponentialRampToValueAtTime(0.001, now + dur);
+      osc.type = 'sine'; osc.frequency.value = freq * 0.9;
+      g.gain.setValueAtTime(0, hit);
+      g.gain.linearRampToValueAtTime(amp, hit + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.001, hit + dur);
       osc.connect(g); g.connect(ac.destination);
-      osc.start(now); osc.stop(now + dur + 0.01);
+      osc.start(hit); osc.stop(hit + dur + 0.01);
     });
   });
 }
