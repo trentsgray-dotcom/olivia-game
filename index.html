@@ -996,7 +996,7 @@ canvas.addEventListener('click', e => {
 function startGame() { init(); state = 'playing'; }
 
 async function shareScore() {
-  const text = `🏃 I scored ${Math.floor(score)} on Olivia's Neon Runner! Can you beat me? 🎮 ${window.location.href}`;
+  const text = `🏃 I scored ${Math.floor(score)} on Olivia's Neon Runner! Can you beat me? 🎮 https://olivia-game-nine.vercel.app`;
   try {
     await navigator.clipboard.writeText(text);
   } catch {
