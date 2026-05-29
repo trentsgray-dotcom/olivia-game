@@ -112,29 +112,33 @@ function snd(fn) {
 function sndCoin() {
   snd(ac => {
     const now = ac.currentTime;
-    // Three-partial bright ding (root + fifth + octave)
-    const dry = ac.createGain();
-    dry.connect(ac.destination);
-    [[1320, 0.28, 0.32], [1980, 0.16, 0.24], [2640, 0.08, 0.16]].forEach(([freq, amp, dur]) => {
+
+    // "Cha" — sharp bandpass noise burst (the percussive strike)
+    const nLen = Math.floor(ac.sampleRate * 0.065);
+    const nBuf = ac.createBuffer(1, nLen, ac.sampleRate);
+    const nd = nBuf.getChannelData(0);
+    for (let i = 0; i < nLen; i++) nd[i] = (Math.random() * 2 - 1) * (1 - i / nLen);
+    const noise = ac.createBufferSource(); noise.buffer = nBuf;
+    const bp = ac.createBiquadFilter(); bp.type = 'bandpass';
+    bp.frequency.value = 4200; bp.Q.value = 1.8;
+    const ng = ac.createGain();
+    ng.gain.setValueAtTime(0.55, now);
+    ng.gain.exponentialRampToValueAtTime(0.001, now + 0.065);
+    noise.connect(bp); bp.connect(ng); ng.connect(ac.destination);
+    noise.start(now); noise.stop(now + 0.07);
+
+    // "Ching" — two metallic partials with a slow frequency sag (coin ring)
+    [[2100, 0.32, 0.52], [3400, 0.14, 0.32]].forEach(([freq, amp, dur]) => {
       const osc = ac.createOscillator(), g = ac.createGain();
       osc.type = 'sine';
       osc.frequency.setValueAtTime(freq, now);
-      osc.frequency.exponentialRampToValueAtTime(freq * 1.18, now + 0.05);
-      g.gain.setValueAtTime(amp, now);
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.91, now + dur); // pitch sag = realism
+      g.gain.setValueAtTime(0, now);
+      g.gain.linearRampToValueAtTime(amp, now + 0.022);
       g.gain.exponentialRampToValueAtTime(0.001, now + dur);
-      osc.connect(g); g.connect(dry);
+      osc.connect(g); g.connect(ac.destination);
       osc.start(now); osc.stop(now + dur + 0.01);
     });
-    // Reverb tail: feedback delay loop fades over 0.6 s
-    const delay = ac.createDelay(0.5);
-    delay.delayTime.value = 0.09;
-    const fb = ac.createGain(); fb.gain.value = 0.28;
-    const wet = ac.createGain();
-    wet.gain.setValueAtTime(0.45, now);
-    wet.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
-    dry.connect(delay);
-    delay.connect(fb); fb.connect(delay);
-    delay.connect(wet); wet.connect(ac.destination);
   });
 }
 
@@ -456,10 +460,30 @@ function drawObstacle(ob) {
 
 function drawCoin(coin) {
   const x = coin.sx + coin.ox, y = coin.sy + coin.oy, s = coin.sc, r = 10 * s;
+  const cy = y - r; // coin centre
   ctx.save();
-  ctx.shadowColor = '#39FF14'; ctx.shadowBlur = 12 * s;
-  ctx.fillStyle = '#39FF14';
-  ctx.beginPath(); ctx.arc(x, y - r, r, 0, Math.PI * 2); ctx.fill();
+
+  // Gold glow
+  ctx.shadowColor = '#FFD700'; ctx.shadowBlur = 9 * s;
+
+  // Radial gradient — bright highlight top-left → rich gold → dark edge
+  const grad = ctx.createRadialGradient(x - r * 0.3, cy - r * 0.3, r * 0.05, x, cy, r);
+  grad.addColorStop(0,    '#FFF59D');
+  grad.addColorStop(0.45, '#FFD700');
+  grad.addColorStop(1,    '#A67C00');
+  ctx.fillStyle = grad;
+  ctx.beginPath(); ctx.arc(x, cy, r, 0, Math.PI * 2); ctx.fill();
+
+  // Dark gold rim
+  ctx.shadowBlur = 0; ctx.strokeStyle = '#B8860B';
+  ctx.lineWidth = Math.max(0.5, 0.9 * s); ctx.stroke();
+
+  // Green dollar sign
+  ctx.fillStyle = '#00CC44'; ctx.shadowColor = '#00CC44'; ctx.shadowBlur = 4 * s;
+  ctx.font = `bold ${Math.max(7, Math.round(r * 1.25))}px "Courier New", monospace`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('$', x, cy);
+
   ctx.restore();
 }
 
